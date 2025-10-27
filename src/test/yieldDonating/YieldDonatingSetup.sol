@@ -20,8 +20,6 @@ contract YieldDonatingSetup is Test, IEvents {
 
     StrategyFactory public strategyFactory;
 
-    mapping(string => address) public tokenAddrs;
-
     // Addresses for different roles we will use repeatedly.
     address public user = address(10);
     address public keeper = address(4);
@@ -32,29 +30,42 @@ contract YieldDonatingSetup is Test, IEvents {
     // YieldDonating specific variables
     bool public enableBurning = true;
     address public tokenizedStrategyAddress;
-
-    // Mock compounder vault address for testing
-    address public compounderVault = address(100);
+    address public yieldSource;
 
     // Integer variables that will be used repeatedly.
     uint256 public decimals;
     uint256 public MAX_BPS = 10_000;
 
-    // Fuzz from $0.01 of 1e6 stable coins up to 1 trillion of a 1e18 coin
-    uint256 public maxFuzzAmount = 1e30;
+    // Fuzz from $0.01 of 1e6 stable coins up to 1,000,000 of the asset
+    uint256 public maxFuzzAmount;
     uint256 public minFuzzAmount = 10_000;
 
     // Default profit max unlock time is set for 10 days
     uint256 public profitMaxUnlockTime = 10 days;
 
     function setUp() public virtual {
-        _setTokenAddrs();
+        // Read asset address from environment
+        address testAssetAddress = vm.envAddress("TEST_ASSET_ADDRESS");
+        require(
+            testAssetAddress != address(0),
+            "TEST_ASSET_ADDRESS not set in .env"
+        );
 
         // Set asset
-        asset = ERC20(tokenAddrs["DAI"]);
+        asset = ERC20(testAssetAddress);
 
         // Set decimals
         decimals = asset.decimals();
+
+        // Set max fuzz amount to 1,000,000 of the asset
+        maxFuzzAmount = 1_000_000 * 10 ** decimals;
+
+        // Read yield source from environment
+        yieldSource = vm.envAddress("TEST_YIELD_SOURCE");
+        require(
+            yieldSource != address(0),
+            "TEST_YIELD_SOURCE not set in .env"
+        );
 
         // Deploy YieldDonatingTokenizedStrategy implementation
         tokenizedStrategyAddress = address(
@@ -87,7 +98,7 @@ contract YieldDonatingSetup is Test, IEvents {
         IStrategyInterface _strategy = IStrategyInterface(
             address(
                 new Strategy(
-                    compounderVault,
+                    yieldSource,
                     address(asset),
                     "YieldDonating Strategy",
                     management,
@@ -165,19 +176,9 @@ contract YieldDonatingSetup is Test, IEvents {
     function setEnableBurning(bool _enableBurning) public {
         vm.prank(management);
         // Call using low-level call since setEnableBurning may not be in all interfaces
-        (bool success,) = address(strategy).call(
+        (bool success, ) = address(strategy).call(
             abi.encodeWithSignature("setEnableBurning(bool)", _enableBurning)
         );
         require(success, "setEnableBurning failed");
-    }
-
-    function _setTokenAddrs() internal {
-        tokenAddrs["WBTC"] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
-        tokenAddrs["YFI"] = 0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e;
-        tokenAddrs["WETH"] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        tokenAddrs["LINK"] = 0x514910771AF9Ca656af840dff83E8264EcF986CA;
-        tokenAddrs["USDT"] = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-        tokenAddrs["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-        tokenAddrs["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     }
 }

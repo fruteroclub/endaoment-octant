@@ -8,6 +8,7 @@ contract YieldDonatingShutdownTest is Setup {
         super.setUp();
     }
 
+
     function test_shutdownCanWithdraw(uint256 _amount) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
 
@@ -16,8 +17,8 @@ contract YieldDonatingShutdownTest is Setup {
 
         assertEq(strategy.totalAssets(), _amount, "!totalAssets");
 
-        // Earn Interest
-        skip(1 days);
+        // Skip some time
+        skip(30 days);
 
         // Shutdown the strategy
         vm.prank(emergencyAdmin);
@@ -47,8 +48,8 @@ contract YieldDonatingShutdownTest is Setup {
 
         assertEq(strategy.totalAssets(), _amount, "!totalAssets");
 
-        // Earn Interest
-        skip(1 days);
+        // Skip some time
+        skip(30 days);
 
         // Shutdown the strategy
         vm.prank(emergencyAdmin);

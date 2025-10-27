@@ -29,6 +29,8 @@ contract YieldDonatingFunctionSignatureTest is Setup {
             )
         );
 
+        assertTrue(success, "initialize failed");
+
         // Check view functions
         assertEq(strategy.convertToAssets(wad), wad, "convert to assets");
         assertEq(strategy.convertToShares(wad), wad, "convert to shares");
@@ -62,22 +64,7 @@ contract YieldDonatingFunctionSignatureTest is Setup {
         strategy.setKeeper(user);
         vm.expectRevert("!management");
         strategy.setEmergencyAdmin(user);
-        // YieldDonatingTokenizedStrategy doesn't have performance fee functions
-        // vm.expectRevert("!management");
-        // strategy.setPerformanceFee(uint16(2_000));
-        // vm.expectRevert("!management");
-        // strategy.setPerformanceFeeRecipient(user);
-        // vm.expectRevert("!management");
-        // strategy.setProfitMaxUnlockTime(1);
         vm.stopPrank();
-
-        // Assure checks are being used - skip performance fee related checks
-        // vm.startPrank(strategy.management());
-        // vm.expectRevert("Cannot be self");
-        // strategy.setPerformanceFeeRecipient(address(strategy));
-        // vm.expectRevert("too long");
-        // strategy.setProfitMaxUnlockTime(type(uint256).max);
-        // vm.stopPrank();
 
         // Mint some shares to the user
         airdrop(ERC20(address(strategy)), user, wad);
