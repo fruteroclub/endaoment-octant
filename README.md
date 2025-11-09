@@ -1,248 +1,415 @@
-# YieldDonating Strategy Development Guide for Octant
+# Endaoment: Bridging Degens 🤝 Regens Through Yield-Powered Student Funding
 
-This repository provides a template for creating **YieldDonating strategies** compatible with Octant's ecosystem using [Foundry](https://book.getfoundry.sh/). YieldDonating strategies donate all generated yield to a donation address.
+> **A regenerative public goods protocol that transforms speculative yield into sustainable student research funding, embodying the Degen 🤝 Regen synergy.**
 
-## What is a YieldDonating Strategy?
+## 🌱 What is Endaoment?
 
-YieldDonating strategies are designed to:
-- Deploy assets into external yield sources (Aave, Compound, Yearn vaults, etc.)
-- Harvest yield and donate 100% of profits to public goods funding
-- Optionally protect users from losses by burning dragonRouter shares
-- Charge NO performance fees to users
+**Endaoment** is a decentralized protocol that enables anyone to support student research initiatives while earning yield exposure. It combines:
 
-## Getting Started
+- **YieldDonating Strategies (YDS)** from Octant - generating yield from DeFi protocols like Aave
+- **RegenStaker** - representing student voting power through staking
+- **AllocationManager** - democratically distributing yield based on weighted votes
+
+### The Problem We Solve
+
+Traditional funding models for students and public goods face critical challenges:
+- **Limited scalability**: Traditional grants can't scale with demand
+- **Coordination failures**: Donors and beneficiaries struggle to align incentives
+- **Speculative waste**: Degen energy generates yield but lacks purpose
+- **Slow execution**: Regen projects move too slowly to capture momentum
+
+### Our Solution: The Regenerative Flywheel
+
+Endaoment creates a **self-sustaining system** where:
+
+1. **Degens** deposit assets → Generate yield through Aave/DeFi protocols 🚀
+2. **Yield is donated** → 100% of profits go to public goods (no fees) 💰
+3. **Students stake** → Build voting power through RegenStaker 🍄
+4. **Weighted voting** → Depositors + students vote on funding allocation 🗳️
+5. **Yield distribution** → 10% whale / 15% retail / 75% students (weighted by votes) 📊
+6. **Sustainable funding** → Students receive continuous support for research 🌱
+
+**Result**: Speculative energy (Degen) fuels regenerative impact (Regen) → **1 + 1 = 3** ⚡
+
+---
+
+## 🎩🤝🍄 The Degen 🤝 Regen Connection
+
+Endaoment embodies the **Degens 🤝 Regens Manifesto** by creating a bridge between two complementary forces:
+
+### How Degens Benefit
+- ✅ **Yield exposure** without fees - deposit assets, earn yield, support public goods
+- ✅ **Viral coordination** - participate in funding decisions through voting
+- ✅ **Purpose-driven speculation** - your yield directly funds student research
+- ✅ **Transparent impact** - see exactly how your deposits create value
+
+### How Regens Benefit
+- ✅ **Sustainable funding** - continuous yield streams replace one-time grants
+- ✅ **Democratized allocation** - students and depositors vote together
+- ✅ **Scalable infrastructure** - protocol handles distribution automatically
+- ✅ **Aligned incentives** - students with more staking power get more funding
+
+### The Synergy
+When **Degens and Regens collaborate** in Endaoment:
+- **Degen energy** (liquidity + yield) → **Regen structure** (student funding) → **Exponential impact** 🚀🌱⚡
+
+This is **not zero-sum**—it's about multiplying value through coordination.
+
+---
+
+## 🔄 How It Works
+
+### Complete Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     ENDAOMENT PROTOCOL FLOW                      │
+└─────────────────────────────────────────────────────────────────┘
+
+1. DEPOSIT PHASE
+   ┌──────────┐      ┌──────────────┐      ┌─────────────┐
+   │  Degens  │─────▶│  YDS Vault   │─────▶│ Aave Pool   │
+   │ (Whale/  │      │ (ERC-4626)   │      │ (Yield Gen) │
+   │  Retail) │      │              │      │             │
+   └──────────┘      └──────────────┘      └─────────────┘
+                            │
+                            │ (yield generated)
+                            ▼
+                    ┌──────────────┐
+                    │ AllocationMgr │
+                    │ (dragonRouter)│
+                    └──────────────┘
+
+2. STUDENT PHASE
+   ┌──────────┐      ┌──────────────┐      ┌─────────────┐
+   │ Students │─────▶│ RegenStaker  │─────▶│ StudentVoting│
+   │  Stake   │      │ (Earning Pwr)│      │ (Proposals) │
+   └──────────┘      └──────────────┘      └─────────────┘
+
+3. VOTING PHASE
+   ┌──────────────┐      ┌──────────────┐
+   │ Depositors   │─────▶│ AllocationMgr│
+   │ Allocate     │      │ (Weighted    │
+   │ Votes        │      │  Votes)      │
+   └──────────────┘      └──────────────┘
+         │                      │
+         │                      │
+         └──────────┬───────────┘
+                    │
+                    ▼
+            ┌──────────────┐
+            │ Weighted Vote│
+            │ Calculation  │
+            │ = Depositor  │
+            │   Vote ×     │
+            │   (Student   │
+            │   Power +    │
+            │   Proposal   │
+            │   Votes)     │
+            └──────────────┘
+
+4. DISTRIBUTION PHASE
+   ┌──────────────┐
+   │ AllocationMgr│
+   │ Redeems      │
+   │ Shares       │
+   └──────────────┘
+         │
+         ├─── 10% ──▶ Whale (vault creator)
+         ├─── 15% ──▶ Retail (proportional to shares)
+         └─── 75% ──▶ Students (proportional to weighted votes)
+```
+
+### Key Components
+
+1. **YieldDonating Strategy (YDS)**
+   - ERC-4626 compliant vault
+   - Deploys assets to Aave V3 Pool
+   - Detects profit and mints shares to `AllocationManager`
+   - **Zero fees** - all yield donated
+
+2. **RegenStaker**
+   - Students stake tokens to build earning power
+   - Earning power = voting power for proposals
+   - Represents student commitment and engagement
+
+3. **StudentVoting**
+   - Students vote for proposals (other students)
+   - Uses earning power from RegenStaker
+   - Tracks votes per epoch
+
+4. **AllocationManager**
+   - Manages 30-day epochs
+   - Collects YDS profit shares
+   - Calculates weighted votes (depositor + student power)
+   - Distributes yield: 10% whale / 15% retail / 75% students
+
+5. **StudentRegistry**
+   - Manages verified student profiles
+   - Tracks funding received
+   - Ensures only active students can participate
+
+---
+
+## 💎 Value Proposition
+
+### For Depositors (Degens)
+- **Yield exposure** with zero fees
+- **Impact transparency** - see exactly where your yield goes
+- **Voting power** - influence funding allocation
+- **Public goods contribution** - 100% of profits fund students
+
+### For Students (Regens)
+- **Sustainable funding** - continuous yield streams
+- **Democratized access** - vote for proposals, receive funding
+- **Staking rewards** - more staking = more voting power = more funding
+- **Transparent allocation** - weighted voting ensures fair distribution
+
+### For the Ecosystem
+- **Regenerative flywheel** - speculative energy → sustainable funding
+- **Scalable infrastructure** - protocol handles distribution automatically
+- **Aligned incentives** - everyone benefits from protocol success
+- **Public good** - anyone can participate, no barriers to entry
+
+---
+
+## 🏗️ Technical Architecture
+
+### Contracts
+
+```
+src/
+├── strategies/
+│   └── yieldDonating/
+│       └── YieldDonatingStrategy.sol    # YDS vault (Aave integration)
+├── contracts/
+│   ├── AllocationManager.sol            # Yield distribution & epochs
+│   ├── StudentVoting.sol                 # Student proposal voting
+│   └── StudentRegistry.sol               # Student profile management
+├── interfaces/
+│   ├── IRegenStaker.sol                  # RegenStaker interface
+│   └── IStudentRegistry.sol              # StudentRegistry interface
+└── test/
+    ├── integration/
+    │   └── RegenStakerYDSIntegration.t.sol  # Full integration tests
+    └── mocks/
+        └── MockRegenStaker.sol              # Mock for testing
+```
+
+### Integration Points
+
+- **Octant YDS**: Uses `YieldDonatingTokenizedStrategy` for profit donation
+- **Aave V3**: Real mainnet integration via fork testing
+- **RegenStaker**: Student voting power source (mocked in tests)
+- **ERC-4626**: Standard vault interface for deposits/withdrawals
+
+---
+
+## 🎯 How to Demonstrate Endaoment (For Hackathon Judges)
+
+### Quick Demo Script
+
+```bash
+# 1. Set up environment
+cp .env.example .env
+# Add your ETH_RPC_URL and configure TEST_ASSET_ADDRESS, TEST_YIELD_SOURCE
+
+# 2. Install dependencies
+forge install
+forge soldeer install
+
+# 3. Run integration tests (demonstrates full flow)
+forge test --match-contract RegenStakerYDSIntegrationTest \
+  --fork-url $ETH_RPC_URL \
+  --fork-block-number 20000000 \
+  -vvv
+```
+
+### What the Tests Demonstrate
+
+The integration tests (`RegenStakerYDSIntegration.t.sol`) showcase:
+
+1. **Complete Flow** (`test_completeIntegrationFlow`)
+   - ✅ Deposits generate yield through Aave
+   - ✅ Profit shares minted to AllocationManager
+   - ✅ Weighted voting combines depositor + student power
+   - ✅ Yield distributed: 10% whale / 15% retail / 75% students
+   - ✅ Student funding recorded in registry
+
+2. **Weighted Voting** (`test_weightedVoteCalculation`)
+   - ✅ Students with earning power get amplified votes
+   - ✅ Fair distribution based on engagement
+
+3. **Student Power Impact** (`test_studentVotingPowerAffectsAllocation`)
+   - ✅ Higher staking power = more funding
+   - ✅ Incentivizes student participation
+
+4. **Epoch Management** (`test_epochManagement`)
+   - ✅ 30-day epochs with automatic transitions
+   - ✅ Synchronized voting and distribution
+
+5. **Security** (`test_shareRedemptionPreventsDoubleRedemption`)
+   - ✅ Prevents double redemption attacks
+   - ✅ Safe share management
+
+### Key Metrics to Highlight
+
+- **Zero fees**: 100% of yield donated (no performance fees)
+- **Real yield**: Generated from Aave V3 on mainnet fork
+- **Weighted democracy**: Depositor votes × student power
+- **Fair distribution**: 75% to students, 15% to retail, 10% to whale
+- **Scalable**: Protocol handles distribution automatically
+
+### Demo Narrative
+
+1. **"Degens deposit"** → Show whale/retail deposits to YDS vault
+2. **"Yield generates"** → Demonstrate Aave yield generation (skip 30 days)
+3. **"Students stake"** → Show RegenStaker earning power
+4. **"Voting happens"** → Show depositor + student votes
+5. **"Yield distributes"** → Show 10/15/75 split to recipients
+6. **"Impact recorded"** → Show student funding in registry
+
+**Key Point**: "This is the Degen 🤝 Regen synergy in action - speculative yield becomes sustainable student funding."
+
+---
+
+## 🧪 Testing & Verification
+
+### Running Tests
+
+```bash
+# All integration tests
+make test
+
+# Specific test suite
+forge test --match-contract RegenStakerYDSIntegrationTest \
+  --fork-url $(grep '^ETH_RPC_URL=' .env | cut -d '=' -f2-) \
+  --fork-block-number 20000000
+
+# With verbose output
+forge test --match-contract RegenStakerYDSIntegrationTest -vvv
+```
+
+### Test Coverage
+
+- ✅ Complete integration flow (deposit → yield → distribution)
+- ✅ Weighted vote calculation
+- ✅ Student power affects allocation
+- ✅ Epoch management
+- ✅ Share redemption protection
+- ✅ Real Aave yield generation (mainnet fork)
+
+### Verification Checklist
+
+- [x] YDS generates real yield from Aave
+- [x] Profit shares minted to AllocationManager
+- [x] Weighted votes calculated correctly
+- [x] Yield distributed: 10% whale / 15% retail / 75% students
+- [x] Student funding recorded in registry
+- [x] Epochs transition correctly
+- [x] No double redemption possible
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation) (WSL recommended for Windows)
-2. Install [Node.js](https://nodejs.org/en/download/package-manager/)
-3. Clone this repository:
-```sh
-git clone git@github.com:golemfoundation/octant-v2-strategy-foundry-mix.git
-```
+1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
+2. Install [Node.js](https://nodejs.org/)
+3. Get an Ethereum RPC URL (Infura, Alchemy, etc.)
 
-4. Install dependencies:
-```sh
+### Setup
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd octant-v2-strategy-foundry-mix
+
+# Install dependencies
 forge install
 forge soldeer install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your ETH_RPC_URL, TEST_ASSET_ADDRESS, TEST_YIELD_SOURCE
 ```
 
-### Environment Setup
+### Environment Variables
 
-1. Copy `.env.example` to `.env`
-2. Set the required environment variables:
 ```env
 # Required for testing
-TEST_ASSET_ADDRESS=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48  # USDC on mainnet
-TEST_YIELD_SOURCE=0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2   # Your yield source address
+TEST_ASSET_ADDRESS=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48  # USDC
+TEST_YIELD_SOURCE=0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2   # Aave V3 Pool
 
 # RPC URLs
-ETH_RPC_URL=https://mainnet.infura.io/v3/YOUR_INFURA_API_KEY  # Get your key from infura.io
+ETH_RPC_URL=https://mainnet.infura.io/v3/YOUR_API_KEY
 ```
 
-## Strategy Development Step-by-Step
+### Run Tests
 
-### 1. Understanding the Template Structure
-
-The YieldDonating strategy template (`src/strategies/yieldDonating/YieldDonatingStrategy.sol`) contains:
-- **Constructor parameters** you need to provide
-- **Mandatory functions** (marked with TODO) you MUST implement
-- **Optional functions** you can override if needed
-- **Built-in functionality** for profit donation and loss protection
-
-### 2. Define Your Yield Source Interface
-
-First, implement the `IYieldSource` interface for your specific protocol:
-
-```solidity
-// TODO: Replace with your yield source interface
-interface IYieldSource {
-    // Example for Aave V3:
-    function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
-    function withdraw(address asset, uint256 amount, address to) external returns (uint256);
-    
-    // Example for ERC4626 vaults:
-    function deposit(uint256 assets, address receiver) external returns (uint256);
-    function redeem(uint256 shares, address receiver, address owner) external returns (uint256);
-    function convertToAssets(uint256 shares) external view returns (uint256);
-}
-```
-
-### 3. Implement Mandatory Functions
-
-You MUST implement these three core functions:
-
-#### A. `_deployFunds(uint256 _amount)`
-Deploy assets into your yield source:
-```solidity
-function _deployFunds(uint256 _amount) internal override {
-    // Example for Aave:
-    yieldSource.supply(address(asset), _amount, address(this), 0);
-    
-    // Example for ERC4626:
-    // IERC4626(address(yieldSource)).deposit(_amount, address(this));
-}
-```
-
-#### B. `_freeFunds(uint256 _amount)`
-Withdraw assets from your yield source:
-```solidity
-function _freeFunds(uint256 _amount) internal override {
-    // Example for Aave:
-    yieldSource.withdraw(address(asset), _amount, address(this));
-    
-    // Example for ERC4626:
-    // uint256 shares = IERC4626(address(yieldSource)).convertToShares(_amount);
-    // IERC4626(address(yieldSource)).redeem(shares, address(this), address(this));
-}
-```
-
-#### C. `_harvestAndReport()`
-Calculate total assets held by the strategy:
-```solidity
-function _harvestAndReport() internal override returns (uint256 _totalAssets) {
-    // 1. Get assets deployed in yield source
-    uint256 deployedAssets = yieldSource.balanceOf(address(this));
-    
-    // 2. Get idle assets in strategy
-    uint256 idleAssets = asset.balanceOf(address(this));
-    
-    // 3. Return total (MUST include both deployed and idle)
-    _totalAssets = deployedAssets + idleAssets;
-    
-    // Note: Profit/loss is calculated automatically by comparing
-    // with previous totalAssets. Profits are minted to dragonRouter.
-}
-```
-
-### 4. Optional Functions
-
-Override these functions based on your strategy's needs:
-
-#### `availableDepositLimit(address _owner)`
-Implement deposit limits if needed:
-```solidity
-function availableDepositLimit(address) public view override returns (uint256) {
-    // Example: Cap at protocol's lending capacity
-    uint256 protocolCapacity = yieldSource.availableCapacity();
-    return protocolCapacity;
-}
-```
-
-#### `availableWithdrawLimit(address _owner)`
-Implement withdrawal limits:
-```solidity
-function availableWithdrawLimit(address) public view override returns (uint256) {
-    // Example: Limited by protocol's available liquidity
-    return yieldSource.availableLiquidity();
-}
-```
-
-#### `_emergencyWithdraw(uint256 _amount)`
-Emergency withdrawal logic when strategy is shutdown:
-```solidity
-function _emergencyWithdraw(uint256 _amount) internal override {
-    // Force withdraw from yield source
-    yieldSource.emergencyWithdraw(_amount);
-}
-```
-
-#### `_tend(uint256 _totalIdle)` and `_tendTrigger()`
-For maintenance between reports:
-```solidity
-function _tend(uint256 _totalIdle) internal override {
-    // Example: Deploy idle funds if above threshold
-    if (_totalIdle > minDeployAmount) {
-        _deployFunds(_totalIdle);
-    }
-}
-
-function _tendTrigger() internal view override returns (bool) {
-    // Return true when tend should be called
-    return asset.balanceOf(address(this)) > minDeployAmount;
-}
-```
-
-### 5. Constructor Parameters
-
-When deploying your strategy, provide these parameters:
-- `_yieldSource`: Address of your yield protocol (Aave, Compound, etc.)
-- `_asset`: The token to be managed (USDC, DAI, etc.)
-- `_name`: Your strategy name (e.g., "USDC Aave YieldDonating")
-- `_management`: Address that can configure the strategy
-- `_keeper`: Address that can call report() and tend()
-- `_emergencyAdmin`: Address that can shutdown the strategy
-- `_donationAddress`: The dragonRouter address (receives minted profit shares)
-- `_enableBurning`: Whether to enable loss protection via share burning
-- `_tokenizedStrategyAddress`: YieldDonatingTokenizedStrategy implementation
-
-## Testing Your Strategy
-
-### 1. Update Test Configuration
-
-Modify `src/test/yieldDonating/YieldDonatingSetup.sol`:
-- Set your yield source interface and mock
-- Adjust test parameters as needed
-
-### 2. Run Tests
-
-```sh
-# Run all YieldDonating tests
+```bash
+# All tests
 make test
 
-# Run specific test file
-make test-contract contract=YieldDonatingOperation
-
-# Run with traces for debugging
-make trace
+# Integration tests only
+forge test --match-contract RegenStakerYDSIntegrationTest \
+  --fork-url $ETH_RPC_URL \
+  --fork-block-number 20000000
 ```
 
-### 3. Key Test Scenarios
+---
 
-Your tests should verify:
-- ✅ Assets are correctly deployed to yield source
-- ✅ Withdrawals work for various amounts
-- ✅ Profits are minted to dragonRouter (not kept by strategy)
-- ✅ Losses trigger dragonRouter share burning (if enabled)
-- ✅ Emergency withdrawals work when shutdown
-- ✅ Deposit/withdraw limits are enforced
+## 📚 Documentation
 
-## Common Implementation Examples
+- **[Project Analysis](./docs/project-analysis.md)** - Deep dive into Octant YDS architecture
+- **[Integration Implementation](./docs/regenstaker-integration-implementation.md)** - Technical implementation details
+- **[Integration Tests](./docs/integration-tests-summary.md)** - Test suite documentation
+- **[Degen 🤝 Regen Manifesto](./docs/regen/degensxregens.md)** - Philosophy and vision
 
+---
 
-### ERC4626 Vault Strategy
-```solidity
-function _deployFunds(uint256 _amount) internal override {
-    IERC4626(address(yieldSource)).deposit(_amount, address(this));
-}
+## 🎯 Success Criteria
 
-function _harvestAndReport() internal override returns (uint256 _totalAssets) {
-    uint256 shares = IERC4626(address(yieldSource)).balanceOf(address(this));
-    uint256 vaultAssets = IERC4626(address(yieldSource)).convertToAssets(shares);
-    uint256 idleAssets = asset.balanceOf(address(this));
-    
-    _totalAssets = vaultAssets + idleAssets;
-}
-```
+Endaoment succeeds when:
 
-## Deployment Checklist
+1. ✅ **Yield generates** - Real yield from Aave V3 (verified on fork)
+2. ✅ **Profits donated** - 100% of profits minted to AllocationManager
+3. ✅ **Voting works** - Weighted votes combine depositor + student power
+4. ✅ **Distribution fair** - 10/15/75 split executed correctly
+5. ✅ **Students funded** - Funding recorded and distributed
+6. ✅ **Scalable** - Protocol handles multiple epochs and vaults
+7. ✅ **Public good** - Anyone can participate, no barriers
 
-- [ ] Implement all TODO functions in the strategy
-- [ ] Update IYieldSource interface for your protocol
-- [ ] Set up proper token approvals in constructor
-- [ ] Test all core functionality
-- [ ] Test profit donation to dragonRouter
-- [ ] Test loss protection if enabled
-- [ ] Verify emergency shutdown procedures
+---
 
+## 🤝 Contributing
 
-## Key Differences from Standard Tokenized Strategies
+This project is part of the **Endaoment** initiative, bridging Degens 🤝 Regens through yield-powered public goods funding.
 
-| Feature | Standard Strategy | YieldDonating Strategy |
-|---------|------------------|----------------------|
-| Performance Fees | Charges fees to LPs | NO fees - all yield donated |
-| Profit Distribution | Kept by strategy/fees | Minted as shares to dragonRouter |
-| Loss Protection | Users bear losses | Optional burning of dragon shares |
-| Use Case | Maximize LP returns | Public goods funding |
+### Key Principles
 
+- **We believe in Degens** 🎩 ability to discover and spread the word
+- **We believe in Regens** 🍄 ability to align towards systemic solutions
+- **We believe Degens 🤝 Regens** together multiply coordination and public goods
 
+---
+
+## 📄 License
+
+[Add your license here]
+
+---
+
+## 🙏 Acknowledgments
+
+- **Octant** - YieldDonating Strategy framework
+- **Aave** - Yield source protocol
+- **RegenStaker** - Student voting power mechanism
+- **The Degen 🤝 Regen Community** - Inspiration and vision
+
+---
+
+**Join the Movement. Let's Regen Together.** 🌱🎩
+
+*"Speculative energy fuels sustainability. Coordination becomes exponential."*
