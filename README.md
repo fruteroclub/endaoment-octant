@@ -128,10 +128,12 @@ This is **not zero-sum**—it's about multiplying value through coordination.
    - Detects profit and mints shares to `AllocationManager`
    - **Zero fees** - all yield donated
 
-2. **RegenStaker**
-   - Students stake tokens to build earning power
+2. **RegenStaker** (from octant-v2-core)
+   - Students stake ENDAO tokens to build earning power
    - Earning power = voting power for proposals
    - Represents student commitment and engagement
+   - Full rewards distribution system for student incentives
+   - Open staking (AccessMode.NONE) - permissionless participation
 
 3. **StudentVoting**
    - Students vote for proposals (other students)
@@ -189,11 +191,13 @@ src/
 ├── interfaces/
 │   ├── IRegenStaker.sol                  # RegenStaker interface
 │   └── IStudentRegistry.sol              # StudentRegistry interface
+├── tokens/
+│   └── EndaomentToken.sol                # ENDAO token (ERC20Permit) for staking
 └── test/
     ├── integration/
     │   └── RegenStakerYDSIntegration.t.sol  # Full integration tests
-    └── mocks/
-        └── MockRegenStaker.sol              # Mock for testing
+    └── helpers/
+        └── RegenStakerSetup.sol             # RegenStaker deployment helper
 ```
 
 ### Integration Points
@@ -202,7 +206,11 @@ src/
 - **Aave V3**: Real mainnet integration via fork testing
   - **Aave Earn Vault (ERC-4626)**: YDS uses vault as yield source - see [Vault Integration](./docs/vault-integration-summary.md)
   - Vault wraps Aave Pool for standardized interface and simplified accounting
-- **RegenStaker**: Student voting power source (mocked in tests)
+- **RegenStaker** (octant-v2-core): Real implementation for student voting power
+  - Students stake ENDAO tokens to build earning power
+  - Full rewards distribution system
+  - Open staking (permissionless)
+  - Integrated via `RegenStakerWithoutDelegateSurrogateVotes`
 - **ERC-4626**: Standard vault interface for deposits/withdrawals
 
 ---
@@ -274,7 +282,7 @@ The integration tests (`RegenStakerYDSIntegration.t.sol`) showcase:
 
 1. **"Degens deposit"** → Show whale/retail deposits to YDS vault
 2. **"Yield generates"** → Demonstrate Aave yield generation (skip 30 days)
-3. **"Students stake"** → Show RegenStaker earning power
+3. **"Students stake"** → Show students staking ENDAO tokens in RegenStaker to build earning power
 4. **"Voting happens"** → Show depositor + student votes
 5. **"Yield distributes"** → Show 10/15/75 split to recipients
 6. **"Impact recorded"** → Show student funding in registry
@@ -308,6 +316,8 @@ forge test --match-contract RegenStakerYDSIntegrationTest -vvv
 - ✅ Epoch management
 - ✅ Share redemption protection
 - ✅ Real Aave yield generation (mainnet fork)
+- ✅ Real RegenStaker integration (from octant-v2-core)
+- ✅ Full staking and rewards distribution flow
 
 ### Verification Checklist
 
@@ -417,7 +427,7 @@ This project is part of the **Endaoment** initiative, bridging Degens 🤝 Regen
 
 - **Octant** - YieldDonating Strategy framework
 - **Aave** - Yield source protocol
-- **RegenStaker** - Student voting power mechanism
+- **RegenStaker** (octant-v2-core) - Student voting power mechanism with full staking and rewards
 - **The Degen 🤝 Regen Community** - Inspiration and vision
 
 ---

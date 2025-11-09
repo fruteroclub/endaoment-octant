@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.30;
 
 import "forge-std/console2.sol";
 import {Test} from "forge-std/Test.sol";
@@ -9,7 +9,11 @@ import {StudentRegistry} from "../../contracts/StudentRegistry.sol";
 import {IStudentRegistry} from "../../interfaces/IStudentRegistry.sol";
 import {StudentVoting} from "../../contracts/StudentVoting.sol";
 import {AllocationManager} from "../../contracts/AllocationManager.sol";
-import {MockRegenStaker} from "../mocks/MockRegenStaker.sol";
+import {RegenStakerSetup} from "../helpers/RegenStakerSetup.sol";
+import {RegenStakerWithoutDelegateSurrogateVotes} from "@octant-core/regen/RegenStakerWithoutDelegateSurrogateVotes.sol";
+import {IRegenStaker} from "../../interfaces/IRegenStaker.sol";
+import {EndaomentToken} from "../../tokens/EndaomentToken.sol";
+import {Staker} from "staker/Staker.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
@@ -18,11 +22,14 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
  * @notice Comprehensive integration tests for RegenStaker-AllocationManager-YDS flow
  * @dev Tests the complete flow: student staking → voting → depositor allocation → yield distribution
  */
-contract RegenStakerYDSIntegrationTest is Setup {
-    MockRegenStaker public regenStaker;
+contract RegenStakerYDSIntegrationTest is Setup, RegenStakerSetup {
+    // Note: regenStaker and endaoToken are inherited from RegenStakerSetup
     StudentRegistry public studentRegistry;
     StudentVoting public studentVoting;
     AllocationManager public allocationManager;
+
+    // Deposit IDs for students
+    mapping(address => Staker.DepositIdentifier) public studentDepositIds;
 
     // Test addresses
     address public whale = address(100);
@@ -42,9 +49,15 @@ contract RegenStakerYDSIntegrationTest is Setup {
 
     function setUp() public override {
         // Deploy contracts first (before calling super.setUp which deploys strategy)
-        // Deploy MockRegenStaker
-        regenStaker = new MockRegenStaker();
-        vm.label(address(regenStaker), "MockRegenStaker");
+        // Deploy RegenStaker and all dependencies using RegenStakerSetup
+        address admin = address(this);
+        deployRegenStaker(admin);
+        // regenStaker and endaoToken are now available from RegenStakerSetup
+        vm.label(address(regenStaker), "RegenStaker");
+
+        // Fund RegenStaker with rewards for distribution (1M ENDAO tokens)
+        uint256 initialRewards = 1_000_000 * 1e18;
+        fundRewards(initialRewards);
 
         // Deploy StudentRegistry
         studentRegistry = new StudentRegistry();
@@ -79,10 +92,27 @@ contract RegenStakerYDSIntegrationTest is Setup {
         vm.prank(studentRegistry.owner());
         studentRegistry.addStudent(student3, "Carol Johnson", "Harvard", "Public Health");
 
-        // Set earning power for students (simulate staking)
-        regenStaker.setEarningPower(student1, STUDENT1_STAKE);
-        regenStaker.setEarningPower(student2, STUDENT2_STAKE);
-        regenStaker.setEarningPower(student3, STUDENT3_STAKE);
+        // Students stake ENDAO tokens to build earning power
+        studentDepositIds[student1] = stakeForStudent(student1, STUDENT1_STAKE);
+        studentDepositIds[student2] = stakeForStudent(student2, STUDENT2_STAKE);
+        studentDepositIds[student3] = stakeForStudent(student3, STUDENT3_STAKE);
+
+        // Verify earning power was set correctly
+        assertEq(
+            regenStaker.depositorTotalEarningPower(student1),
+            STUDENT1_STAKE,
+            "Student1 earning power should match stake"
+        );
+        assertEq(
+            regenStaker.depositorTotalEarningPower(student2),
+            STUDENT2_STAKE,
+            "Student2 earning power should match stake"
+        );
+        assertEq(
+            regenStaker.depositorTotalEarningPower(student3),
+            STUDENT3_STAKE,
+            "Student3 earning power should match stake"
+        );
 
         // Now call super.setUp() which will deploy strategy
         // But we need to override setUpStrategy to use AllocationManager as donation address
@@ -106,7 +136,7 @@ contract RegenStakerYDSIntegrationTest is Setup {
                 )
             )
         );
-        
+
         vm.label(address(strategy), "strategy");
 
         // Label addresses
@@ -317,7 +347,7 @@ contract RegenStakerYDSIntegrationTest is Setup {
 
         // Get current shares (may have changed due to yield)
         uint256 currentWhaleShares = strategy.balanceOf(whale);
-        
+
         address[] memory students2 = new address[](1);
         students2[0] = student4;
         uint256[] memory votes2 = new uint256[](1);
@@ -453,4 +483,3 @@ contract RegenStakerYDSIntegrationTest is Setup {
         allocationManager.redeemVaultShares(0, address(strategy));
     }
 }
-
