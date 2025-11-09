@@ -200,6 +200,8 @@ src/
 
 - **Octant YDS**: Uses `YieldDonatingTokenizedStrategy` for profit donation
 - **Aave V3**: Real mainnet integration via fork testing
+  - **Option A**: Direct Aave Pool integration (current implementation)
+  - **Option B**: Aave Earn Vault (ERC-4626 compliant) - see [Aave Vault Deployment](./docs/aave-vault-deployment.md)
 - **RegenStaker**: Student voting power source (mocked in tests)
 - **ERC-4626**: Standard vault interface for deposits/withdrawals
 
@@ -218,12 +220,20 @@ cp .env.example .env
 forge install
 forge soldeer install
 
-# 3. Run integration tests (demonstrates full flow)
+# 3. Run Aave Vault tests (visual output showing protocol benefits)
+forge test --match-test test_completeFlow \
+  --fork-url $ETH_RPC_URL \
+  --fork-block-number 20000000 \
+  -vvv
+
+# 4. Run full integration tests (complete Endaoment flow)
 forge test --match-contract RegenStakerYDSIntegrationTest \
   --fork-url $ETH_RPC_URL \
   --fork-block-number 20000000 \
   -vvv
 ```
+
+> **💡 Tip**: The Aave Vault tests include **visual CLI output** that clearly shows each step and protocol benefits. Perfect for hackathon demos! See [Aave Vault Testing Guide](./docs/aave-vault-testing.md) for details.
 
 ### What the Tests Demonstrate
 
@@ -323,7 +333,7 @@ forge test --match-contract RegenStakerYDSIntegrationTest -vvv
 
 ```bash
 # Clone repository
-git clone <repository-url>
+git clone git@github.com:golemfoundation/octant-v2-strategy-foundry-mix.git
 cd octant-v2-strategy-foundry-mix
 
 # Install dependencies
@@ -365,6 +375,8 @@ forge test --match-contract RegenStakerYDSIntegrationTest \
 - **[Project Analysis](./docs/project-analysis.md)** - Deep dive into Octant YDS architecture
 - **[Integration Implementation](./docs/regenstaker-integration-implementation.md)** - Technical implementation details
 - **[Integration Tests](./docs/integration-tests-summary.md)** - Test suite documentation
+- **[Aave Vault Deployment](./docs/aave-vault-deployment.md)** - Deploy ERC-4626 Aave Earn Vault
+- **[Aave Vault Testing](./docs/aave-vault-testing.md)** - Visual testing guide with CLI output
 - **[Degen 🤝 Regen Manifesto](./docs/regen/degensxregens.md)** - Philosophy and vision
 
 ---
