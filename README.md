@@ -2,6 +2,113 @@
 
 > **A regenerative public goods protocol that transforms speculative yield into sustainable student research funding, embodying the Degen 🤝 Regen synergy.**
 
+---
+
+## ⚡ QUICK JUDGE EVALUATION (30 seconds)
+
+**TL;DR**: Endaoment enables anyone to earn yield while funding student research. Degens deposit → Aave generates yield → 100% donated → Students vote → Yield distributed (10% whale / 15% retail / 75% students).
+
+**Key Innovation**: First protocol to bridge DeFi yield generation with regenerative student funding through weighted voting (staking + attestations).
+
+**Value**: Zero fees, real yield from Aave, democratic allocation, sustainable funding model.
+
+**Status**: ✅ Fully functional, ✅ Real Aave integration, ✅ Complete test suite, ✅ Production-ready contracts
+
+---
+
+## 🚀 GET STARTED IN 5 MINUTES
+
+### Prerequisites
+```bash
+# Install Foundry (if not already installed)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
+
+### Quick Setup
+```bash
+# 1. Clone and setup (1 min)
+git clone https://github.com/fruteroclub/endaoment-octant.git
+cd endaoment-octant
+forge install
+forge soldeer install
+
+# 2. Configure environment (30 sec)
+cp .env.example .env
+# Add your ETH_RPC_URL (Infura/Alchemy), TEST_ASSET_ADDRESS, TEST_YIELD_SOURCE
+
+# 3. Run tests (3 min)
+forge test --fork-url $ETH_RPC_URL --fork-block-number 20000000 -vvv
+```
+
+### What You'll See
+- ✅ Real yield generation from Aave V3
+- ✅ Student staking and voting power
+- ✅ Attestation-based voting boosts
+- ✅ Complete yield distribution flow
+- ✅ All integration tests passing
+
+**👉 [Full Getting Started Guide](#-getting-started)** | **👉 [Demo Script](#-how-to-demonstrate-endaoment-for-hackathon-judges)**
+
+---
+
+## 📖 UNDERSTAND IN 1.5 MINUTES
+
+### The Flow (Visual)
+
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Degens    │────▶│  YDS Vault   │────▶│ Aave Pool  │
+│  (Deposits)  │     │ (ERC-4626)   │     │ (Yield Gen)│
+└─────────────┘     └──────────────┘     └─────────────┘
+                            │
+                            │ (100% yield donated)
+                            ▼
+                    ┌──────────────┐
+                    │ AllocationMgr│
+                    └──────────────┘
+                            │
+         ┌──────────────────┼──────────────────┐
+         │                  │                  │
+         ▼                  ▼                  ▼
+    ┌─────────┐      ┌──────────────┐    ┌──────────┐
+    │ Students│      │  Depositors  │    │ Students │
+    │  Stake  │      │   Allocate   │    │  Attest  │
+    │ ENDAO   │      │    Votes     │    │ (EAS)    │
+    └─────────┘      └──────────────┘    └──────────┘
+         │                  │                  │
+         └──────────────────┼──────────────────┘
+                            │
+                            ▼
+                    ┌──────────────┐
+                    │  Weighted    │
+                    │    Votes     │
+                    └──────────────┘
+                            │
+                            ▼
+         ┌──────────────────┼──────────────────┐
+         │                  │                  │
+   10% Whale         15% Retail         75% Students
+```
+
+### Key Numbers
+
+- **0% fees** - All yield donated to public goods
+- **10/15/75 split** - Whale / Retail / Students distribution
+- **30-day epochs** - Regular funding cycles
+- **10% boost** - Per EAS attestation (up to 50% max)
+- **Real yield** - Generated from Aave V3 on mainnet
+
+### Why It Matters
+
+1. **For Degens**: Earn yield with zero fees while supporting public goods
+2. **For Students**: Sustainable funding through democratic voting
+3. **For Ecosystem**: Bridges speculative energy with regenerative impact
+
+**👉 [Full Architecture Details](#-technical-architecture)** | **👉 [Complete Flow Diagram](#-complete-flow)**
+
+---
+
 ## 🌱 What is Endaoment?
 
 **Endaoment** is a decentralized protocol that enables anyone to support student research initiatives while earning yield exposure. It combines:
@@ -130,23 +237,32 @@ This is **not zero-sum**—it's about multiplying value through coordination.
 
 2. **RegenStaker** (from octant-v2-core)
    - Students stake ENDAO tokens to build earning power
-   - Earning power = voting power for proposals
+   - Earning power = base voting power for proposals
    - Represents student commitment and engagement
    - Full rewards distribution system for student incentives
    - Open staking (AccessMode.NONE) - permissionless participation
 
-3. **StudentVoting**
+3. **AttestationVotingPower** (EAS Integration)
+   - Students submit EAS attestations to boost voting power
+   - Verifies attestations (academic achievements, research publications, etc.)
+   - Grants voting power boosts beyond staked amount
+   - Configurable boost multiplier (e.g., 10% per attestation)
+   - Maximum boost cap (e.g., 50% max boost)
+   - Automatic revocation sync with EAS
+
+4. **StudentVoting**
    - Students vote for proposals (other students)
-   - Uses earning power from RegenStaker
+   - Uses earning power from RegenStaker + attestation boosts
+   - Total voting power = base staking power + attestation boost
    - Tracks votes per epoch
 
-4. **AllocationManager**
+5. **AllocationManager**
    - Manages 30-day epochs
    - Collects YDS profit shares
    - Calculates weighted votes (depositor + student power)
    - Distributes yield: 10% whale / 15% retail / 75% students
 
-5. **StudentRegistry**
+6. **StudentRegistry**
    - Manages verified student profiles
    - Tracks funding received
    - Ensures only active students can participate
@@ -187,10 +303,12 @@ src/
 ├── contracts/
 │   ├── AllocationManager.sol            # Yield distribution & epochs
 │   ├── StudentVoting.sol                 # Student proposal voting
-│   └── StudentRegistry.sol               # Student profile management
+│   ├── StudentRegistry.sol               # Student profile management
+│   └── AttestationVotingPower.sol        # EAS attestation voting power boosts
 ├── interfaces/
 │   ├── IRegenStaker.sol                  # RegenStaker interface
-│   └── IStudentRegistry.sol              # StudentRegistry interface
+│   ├── IStudentRegistry.sol              # StudentRegistry interface
+│   └── IEAS.sol                          # Ethereum Attestation Service interface
 ├── tokens/
 │   └── EndaomentToken.sol                # ENDAO token (ERC20Permit) for staking
 └── test/
@@ -211,6 +329,11 @@ src/
   - Full rewards distribution system
   - Open staking (permissionless)
   - Integrated via `RegenStakerWithoutDelegateSurrogateVotes`
+- **EAS (Ethereum Attestation Service)**: Attestation-based voting power boosts
+  - Students submit attestations (achievements, publications, etc.)
+  - Verified attestations grant additional voting power
+  - Configurable boost system with maximum cap
+  - Automatic revocation sync
 - **ERC-4626**: Standard vault interface for deposits/withdrawals
 
 ---
@@ -283,9 +406,10 @@ The integration tests (`RegenStakerYDSIntegration.t.sol`) showcase:
 1. **"Degens deposit"** → Show whale/retail deposits to YDS vault
 2. **"Yield generates"** → Demonstrate Aave yield generation (skip 30 days)
 3. **"Students stake"** → Show students staking ENDAO tokens in RegenStaker to build earning power
-4. **"Voting happens"** → Show depositor + student votes
-5. **"Yield distributes"** → Show 10/15/75 split to recipients
-6. **"Impact recorded"** → Show student funding in registry
+4. **"Students attest"** → Show students submitting EAS attestations for voting power boosts
+5. **"Voting happens"** → Show depositor + student votes (with attestation boosts)
+6. **"Yield distributes"** → Show 10/15/75 split to recipients
+7. **"Impact recorded"** → Show student funding in registry
 
 **Key Point**: "This is the Degen 🤝 Regen synergy in action - speculative yield becomes sustainable student funding."
 
@@ -318,6 +442,8 @@ forge test --match-contract RegenStakerYDSIntegrationTest -vvv
 - ✅ Real Aave yield generation (mainnet fork)
 - ✅ Real RegenStaker integration (from octant-v2-core)
 - ✅ Full staking and rewards distribution flow
+- ✅ EAS attestation-based voting power boosts
+- ✅ Attestation verification and revocation handling
 
 ### Verification Checklist
 
@@ -333,50 +459,73 @@ forge test --match-contract RegenStakerYDSIntegrationTest -vvv
 
 ## 🚀 Getting Started
 
+> **Quick Start**: See [⚡ QUICK JUDGE EVALUATION](#-quick-judge-evaluation-30-seconds) above for the 5-minute setup.
+
 ### Prerequisites
 
 1. Install [Foundry](https://book.getfoundry.sh/getting-started/installation)
-2. Install [Node.js](https://nodejs.org/)
-3. Get an Ethereum RPC URL (Infura, Alchemy, etc.)
+   ```bash
+   curl -L https://foundry.paradigm.xyz | bash
+   foundryup
+   ```
+2. Get an Ethereum RPC URL ([Infura](https://infura.io/), [Alchemy](https://www.alchemy.com/), etc.)
 
 ### Setup
 
 ```bash
-# Clone repository
-git clone git@github.com:golemfoundation/octant-v2-strategy-foundry-mix.git
-cd octant-v2-strategy-foundry-mix
+# 1. Clone repository
+git clone https://github.com/fruteroclub/endaoment-octant.git
+cd endaoment-octant
 
-# Install dependencies
+# 2. Install dependencies
 forge install
 forge soldeer install
 
-# Configure environment
+# 3. Configure environment
 cp .env.example .env
 # Edit .env with your ETH_RPC_URL, TEST_ASSET_ADDRESS, TEST_YIELD_SOURCE
 ```
 
 ### Environment Variables
 
+Create `.env` file with:
+
 ```env
 # Required for testing
 TEST_ASSET_ADDRESS=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48  # USDC
 TEST_YIELD_SOURCE=0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2   # Aave V3 Pool
 
-# RPC URLs
+# RPC URLs (get from Infura/Alchemy)
 ETH_RPC_URL=https://mainnet.infura.io/v3/YOUR_API_KEY
 ```
 
 ### Run Tests
 
 ```bash
-# All tests
-make test
+# All tests (recommended for first run)
+forge test --fork-url $ETH_RPC_URL --fork-block-number 20000000 -vvv
 
-# Integration tests only
+# Specific test suites
 forge test --match-contract RegenStakerYDSIntegrationTest \
   --fork-url $ETH_RPC_URL \
-  --fork-block-number 20000000
+  --fork-block-number 20000000 -vvv
+
+forge test --match-contract AttestationVotingPowerTest -vvv
+
+# Aave Vault visual demo
+forge test --match-test test_completeFlow \
+  --fork-url $ETH_RPC_URL \
+  --fork-block-number 20000000 -vvv
 ```
+
+### Expected Output
+
+You should see:
+- ✅ All tests passing
+- ✅ Real yield generation from Aave
+- ✅ Student staking and voting
+- ✅ Attestation boosts working
+- ✅ Yield distribution (10/15/75 split)
 
 ---
 

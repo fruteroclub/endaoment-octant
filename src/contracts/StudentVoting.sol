@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.30;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IStudentRegistry} from "../interfaces/IStudentRegistry.sol";
 import {IRegenStaker} from "../interfaces/IRegenStaker.sol";
+import {AttestationVotingPower} from "./AttestationVotingPower.sol";
 
 /**
  * @title StudentVoting
@@ -16,6 +17,9 @@ contract StudentVoting is Ownable {
 
     // Student registry
     IStudentRegistry public studentRegistry;
+
+    // Attestation voting power (optional - can be address(0))
+    AttestationVotingPower public attestationVotingPower;
 
     // AllocationManager address (can set epoch)
     address public allocationManager;
@@ -67,6 +71,14 @@ contract StudentVoting is Ownable {
     }
 
     /**
+     * @notice Set the AttestationVotingPower contract (optional)
+     * @param _attestationVotingPower Address of AttestationVotingPower (can be address(0) to disable)
+     */
+    function setAttestationVotingPower(address _attestationVotingPower) external onlyOwner {
+        attestationVotingPower = AttestationVotingPower(_attestationVotingPower);
+    }
+
+    /**
      * @notice Set the current epoch ID (should be called by AllocationManager)
      * @param epochId New epoch ID
      */
@@ -77,13 +89,23 @@ contract StudentVoting is Ownable {
     }
 
     /**
-     * @notice Get student's voting power from RegenStaker
+     * @notice Get student's total voting power (RegenStaker + attestation boosts)
      * @param student Student address
-     * @return Voting power (earning power from RegenStaker)
+     * @return Voting power (earning power from RegenStaker + attestation boost)
      */
     function getStudentVotingPower(address student) public view returns (uint256) {
         require(studentRegistry.isStudentActive(student), "Student not active");
-        return regenStaker.depositorTotalEarningPower(student);
+        
+        // Get base voting power from RegenStaker
+        uint256 baseVotingPower = regenStaker.depositorTotalEarningPower(student);
+        
+        // Add attestation boost if AttestationVotingPower is set
+        if (address(attestationVotingPower) != address(0)) {
+            (, uint256 totalVotingPower) = attestationVotingPower.getAttestationBoost(student, baseVotingPower);
+            return totalVotingPower;
+        }
+        
+        return baseVotingPower;
     }
 
     /**
