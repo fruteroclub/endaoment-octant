@@ -3,67 +3,53 @@ pragma solidity ^0.8.25;
 
 import "forge-std/console2.sol";
 import {YieldDonatingSetup as Setup, ERC20, IStrategyInterface, ITokenizedStrategy} from "./YieldDonatingSetup.sol";
-import {IAavePool} from "../../interfaces/IAavePool.sol";
-import {DataTypes} from "../../interfaces/DataTypes.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AaveEarnVault} from "../../vaults/AaveEarnVault.sol";
 
 /**
  * @title AaveForkTest
- * @notice Comprehensive fork tests for Aave V3 integration with YieldDonating Strategy
- * @dev Tests yield generation, profit detection, and donation to dragonRouter
+ * @notice Comprehensive fork tests for Aave V3 integration with YieldDonating Strategy via Aave Earn Vault
+ * @dev Tests yield generation, profit detection, and donation to dragonRouter using ERC-4626 vault
  */
 contract AaveForkTest is Setup {
-    IAavePool public aavePool;
-    address public aTokenAddress;
+    IERC4626 public vaultInterface;
+    AaveEarnVault public aaveVault;
 
     function setUp() public override {
         super.setUp();
         
-        // Cast yield source to IAavePool
-        aavePool = IAavePool(yieldSource);
+        // Cast yield source to IERC4626 (vault)
+        vaultInterface = IERC4626(yieldSource);
+        aaveVault = AaveEarnVault(address(vaultInterface));
         
         // Label addresses for better traces
-        vm.label(address(aavePool), "AavePool");
+        vm.label(address(vaultInterface), "AaveEarnVault");
     }
     
     /**
-     * @notice Helper function to get aToken address
-     * @dev Gets aToken address from Aave Pool, caches it
+     * @notice Helper function to get aToken address from vault
+     * @dev Gets aToken address from Aave Pool via vault
      */
-    function _getATokenAddress() internal returns (address) {
-        if (aTokenAddress == address(0)) {
-            // Get aToken address from Aave Pool
-            try aavePool.getReserveData(address(asset)) returns (DataTypes.ReserveData memory reserveData) {
-                aTokenAddress = reserveData.aTokenAddress;
-                require(aTokenAddress != address(0), "aToken address is zero");
-                vm.label(aTokenAddress, "aToken");
-            } catch {
-                // If getReserveData fails, try to get it from the strategy after a deposit
-                // This handles cases where the reserve might not be active at fork block
-                revert("Could not get aToken address. Try depositing first or use a more recent fork block.");
-            }
-        }
-        return aTokenAddress;
+    function _getATokenAddress() internal view returns (address) {
+        return aaveVault.aToken();
     }
 
     /**
-     * @notice Test basic deposit and deployment to Aave
+     * @notice Test basic deposit and deployment to vault
      */
-    function test_depositDeploysToAave(uint256 _amount) public {
+    function test_depositDeploysToVault(uint256 _amount) public {
         vm.assume(_amount > minFuzzAmount && _amount < maxFuzzAmount);
         
-        // Get aToken address (will be cached after first call)
-        address aToken = _getATokenAddress();
-        
-        // Get initial aToken balance
-        uint256 initialATokenBalance = IERC20(aToken).balanceOf(address(strategy));
+        // Get initial vault shares balance
+        uint256 initialVaultShares = vaultInterface.balanceOf(address(strategy));
         
         // Deposit to strategy
         mintAndDepositIntoStrategy(strategy, user, _amount);
         
-        // Verify funds deployed to Aave (aToken balance should increase)
-        uint256 finalATokenBalance = IERC20(aToken).balanceOf(address(strategy));
-        assertGt(finalATokenBalance, initialATokenBalance, "Funds not deployed to Aave");
+        // Verify funds deployed to vault (vault shares should increase)
+        uint256 finalVaultShares = vaultInterface.balanceOf(address(strategy));
+        assertGt(finalVaultShares, initialVaultShares, "Funds not deployed to vault");
         
         // Verify strategy total assets matches deposit
         assertEq(strategy.totalAssets(), _amount, "Strategy total assets should equal deposit");
@@ -231,26 +217,25 @@ contract AaveForkTest is Setup {
     }
 
     /**
-     * @notice Test aToken balance increases over time
+     * @notice Test vault shares value increases over time (yield accrual)
      */
-    function test_aTokenBalanceIncreases() public {
+    function test_vaultSharesValueIncreases() public {
         uint256 _amount = 100_000 * 10 ** decimals;
         mintAndDepositIntoStrategy(strategy, user, _amount);
         
-        // Get aToken address
-        address aToken = _getATokenAddress();
-        
-        // Get initial aToken balance
-        uint256 initialATokenBalance = IERC20(aToken).balanceOf(address(strategy));
+        // Get initial vault shares and their asset value
+        uint256 initialVaultShares = vaultInterface.balanceOf(address(strategy));
+        uint256 initialVaultAssets = vaultInterface.convertToAssets(initialVaultShares);
         
         // Skip time
         skip(30 days);
         
-        // Get aToken balance after time passage
-        uint256 finalATokenBalance = IERC20(aToken).balanceOf(address(strategy));
+        // Get vault shares and asset value after time passage
+        uint256 finalVaultShares = vaultInterface.balanceOf(address(strategy));
+        uint256 finalVaultAssets = vaultInterface.convertToAssets(finalVaultShares);
         
-        // aToken balance should increase (interest accrues)
-        assertGt(finalATokenBalance, initialATokenBalance, "aToken balance should increase with interest");
+        // Vault shares value should increase (interest accrues)
+        assertGt(finalVaultAssets, initialVaultAssets, "Vault assets should increase with interest");
     }
 
     /**
@@ -262,11 +247,9 @@ contract AaveForkTest is Setup {
         // Deposit
         mintAndDepositIntoStrategy(strategy, user, _amount);
         
-        // Get aToken address
-        address aToken = _getATokenAddress();
-        
         // Get initial state
-        uint256 aTokenBefore = IERC20(aToken).balanceOf(address(strategy));
+        uint256 vaultSharesBefore = vaultInterface.balanceOf(address(strategy));
+        uint256 vaultAssetsBefore = vaultInterface.convertToAssets(vaultSharesBefore);
         uint256 idleBefore = asset.balanceOf(address(strategy));
         uint256 totalAssets1 = strategy.totalAssets();
         assertEq(totalAssets1, _amount, "Initial total assets should equal deposit");
@@ -286,13 +269,14 @@ contract AaveForkTest is Setup {
         // Get total assets after report (should include idle)
         uint256 totalAssets2 = strategy.totalAssets();
         
-        // Verify that total assets equals deployed (aToken) + idle
-        uint256 aTokenAfter = IERC20(aToken).balanceOf(address(strategy));
+        // Verify that total assets equals deployed (vault assets) + idle
+        uint256 vaultSharesAfter = vaultInterface.balanceOf(address(strategy));
+        uint256 vaultAssetsAfter = vaultInterface.convertToAssets(vaultSharesAfter);
         uint256 currentIdle = asset.balanceOf(address(strategy));
-        uint256 calculatedTotal = aTokenAfter + currentIdle;
+        uint256 calculatedTotal = vaultAssetsAfter + currentIdle;
         
-        // After report, total assets should equal aToken + idle
-        assertEq(totalAssets2, calculatedTotal, "Total assets should equal aToken balance + idle after report");
+        // After report, total assets should equal vault assets + idle
+        assertEq(totalAssets2, calculatedTotal, "Total assets should equal vault assets + idle after report");
         assertGe(totalAssets2, totalAssets1, "Total assets should be at least equal to before");
     }
 

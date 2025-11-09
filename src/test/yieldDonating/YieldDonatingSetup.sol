@@ -8,6 +8,8 @@ import {YieldDonatingStrategy as Strategy, ERC20} from "../../strategies/yieldDo
 import {YieldDonatingStrategyFactory as StrategyFactory} from "../../strategies/yieldDonating/YieldDonatingStrategyFactory.sol";
 import {IStrategyInterface} from "../../interfaces/IStrategyInterface.sol";
 import {ITokenizedStrategy} from "@octant-core/core/interfaces/ITokenizedStrategy.sol";
+import {AaveEarnVault} from "../../vaults/AaveEarnVault.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // Inherit the events so they can be checked if desired.
 import {IEvents} from "@tokenized-strategy/interfaces/IEvents.sol";
@@ -30,7 +32,8 @@ contract YieldDonatingSetup is Test, IEvents {
     // YieldDonating specific variables
     bool public enableBurning = true;
     address public tokenizedStrategyAddress;
-    address public yieldSource;
+    address public yieldSource; // Now points to Aave Earn Vault
+    AaveEarnVault public vault; // Aave Earn Vault instance
 
     // Integer variables that will be used repeatedly.
     uint256 public decimals;
@@ -57,9 +60,21 @@ contract YieldDonatingSetup is Test, IEvents {
         // Set max fuzz amount to 1,000,000 of the asset
         maxFuzzAmount = 1_000_000 * 10 ** decimals;
 
-        // Read yield source from environment
-        yieldSource = vm.envAddress("TEST_YIELD_SOURCE");
-        require(yieldSource != address(0), "TEST_YIELD_SOURCE not set in .env");
+        // Read Aave Pool address from environment (needed for vault deployment)
+        address aavePoolAddress = vm.envAddress("TEST_YIELD_SOURCE");
+        require(aavePoolAddress != address(0), "TEST_YIELD_SOURCE (Aave Pool) not set in .env");
+
+        // Deploy Aave Earn Vault
+        vault = new AaveEarnVault(
+            IERC20(address(asset)),
+            "Aave USDC Earn Vault",
+            "aUSDC-vault",
+            aavePoolAddress
+        );
+        
+        // Use vault as yield source
+        yieldSource = address(vault);
+        vm.label(address(vault), "AaveEarnVault");
 
         // Deploy YieldDonatingTokenizedStrategy implementation
         tokenizedStrategyAddress = address(new YieldDonatingTokenizedStrategy());

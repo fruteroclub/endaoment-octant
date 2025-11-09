@@ -5,8 +5,7 @@ import {BaseStrategy} from "@octant-core/core/BaseStrategy.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IAavePool} from "../../interfaces/IAavePool.sol";
-import {DataTypes} from "../../interfaces/DataTypes.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 
 /**
  * @title YieldDonating Strategy Template
@@ -22,10 +21,11 @@ import {DataTypes} from "../../interfaces/DataTypes.sol";
 contract YieldDonatingStrategy is BaseStrategy {
     using SafeERC20 for ERC20;
 
-    /// @notice Address of the Aave V3 Pool
-    IAavePool public immutable yieldSource;
+    /// @notice Address of the Aave Earn Vault (ERC-4626)
+    IERC4626 public immutable yieldSource;
 
     /**
+     * @param _yieldSource Address of the Aave Earn Vault (ERC-4626)
      * @param _asset Address of the underlying asset
      * @param _name Strategy name
      * @param _management Address with management role
@@ -57,9 +57,12 @@ contract YieldDonatingStrategy is BaseStrategy {
             _tokenizedStrategyAddress
         )
     {
-        yieldSource = IAavePool(_yieldSource);
+        yieldSource = IERC4626(_yieldSource);
 
-        // max allow Aave Pool to withdraw assets
+        // Verify vault asset matches strategy asset
+        require(yieldSource.asset() == _asset, "Vault asset mismatch");
+
+        // Approve vault to spend assets
         ERC20(_asset).forceApprove(_yieldSource, type(uint256).max);
 
         // TokenizedStrategy initialization will be handled separately
@@ -83,13 +86,8 @@ contract YieldDonatingStrategy is BaseStrategy {
      * to deploy.
      */
     function _deployFunds(uint256 _amount) internal override {
-        // Deploy funds to Aave V3 Pool
-        yieldSource.supply(
-            address(asset),
-            _amount,
-            address(this), // onBehalfOf
-            0 // referralCode
-        );
+        // Deploy funds to Aave Earn Vault (ERC-4626)
+        yieldSource.deposit(_amount, address(this));
     }
 
     /**
@@ -114,12 +112,8 @@ contract YieldDonatingStrategy is BaseStrategy {
      * @param _amount, The amount of 'asset' to be freed.
      */
     function _freeFunds(uint256 _amount) internal override {
-        // Withdraw funds from Aave V3 Pool
-        yieldSource.withdraw(
-            address(asset),
-            _amount,
-            address(this) // to
-        );
+        // Withdraw funds from Aave Earn Vault (ERC-4626)
+        yieldSource.withdraw(_amount, address(this), address(this));
     }
 
     /**
@@ -145,47 +139,18 @@ contract YieldDonatingStrategy is BaseStrategy {
      * amount of 'asset' the strategy currently holds including idle funds.
      */
     function _harvestAndReport() internal override returns (uint256 _totalAssets) {
-        // Get aToken address from Aave Pool
-        address aToken = _getATokenAddress();
+        // Get vault shares balance
+        uint256 vaultShares = yieldSource.balanceOf(address(this));
 
-        // Get aToken balance (represents deposited assets + accrued interest)
-        // In Aave V3, aToken balance already includes accrued interest
-        // The exchange rate increases over time, so balanceOf() gives us the total value
-        uint256 aTokenBalance = IERC20(aToken).balanceOf(address(this));
-
-        // Convert aToken balance to underlying asset value
-        // For Aave V3, aToken uses 1:1 exchange rate that increases with interest
-        // The balance already represents the underlying asset value including interest
-        uint256 aTokenValue = _convertATokenToAssets(aTokenBalance);
+        // Convert shares to assets (includes accrued yield)
+        // ERC-4626 vault automatically accounts for yield in convertToAssets
+        uint256 vaultAssets = yieldSource.convertToAssets(vaultShares);
 
         // Get idle assets in strategy
         uint256 idleAssets = asset.balanceOf(address(this));
 
-        // Return total (deployed + idle)
-        _totalAssets = aTokenValue + idleAssets;
-    }
-
-    /**
-     * @notice Get the aToken address for the asset from Aave Pool
-     * @return aToken address
-     */
-    function _getATokenAddress() internal view returns (address) {
-        DataTypes.ReserveData memory reserveData = yieldSource.getReserveData(address(asset));
-        return reserveData.aTokenAddress;
-    }
-
-    /**
-     * @notice Convert aToken balance to underlying asset value
-     * @dev In Aave V3, aToken balance already represents the underlying asset value
-     *      including accrued interest. The exchange rate increases over time.
-     * @param aTokenAmount The amount of aTokens
-     * @return The equivalent amount of underlying assets
-     */
-    function _convertATokenToAssets(uint256 aTokenAmount) internal pure returns (uint256) {
-        // For Aave V3, aToken balance already includes accrued interest
-        // The exchange rate is 1:1 but increases with accrued interest
-        // So we can use the aToken balance directly
-        return aTokenAmount;
+        // Return total (deployed in vault + idle)
+        _totalAssets = vaultAssets + idleAssets;
     }
 
     /*//////////////////////////////////////////////////////////////

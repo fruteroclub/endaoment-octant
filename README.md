@@ -200,8 +200,8 @@ src/
 
 - **Octant YDS**: Uses `YieldDonatingTokenizedStrategy` for profit donation
 - **Aave V3**: Real mainnet integration via fork testing
-  - **Option A**: Direct Aave Pool integration (current implementation)
-  - **Option B**: Aave Earn Vault (ERC-4626 compliant) - see [Aave Vault Deployment](./docs/aave-vault-deployment.md)
+  - **Aave Earn Vault (ERC-4626)**: YDS uses vault as yield source - see [Vault Integration](./docs/vault-integration-summary.md)
+  - Vault wraps Aave Pool for standardized interface and simplified accounting
 - **RegenStaker**: Student voting power source (mocked in tests)
 - **ERC-4626**: Standard vault interface for deposits/withdrawals
 
