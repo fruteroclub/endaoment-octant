@@ -71,6 +71,10 @@ contract RegenStakerSetup is Test {
         );
         vm.label(address(regenStaker), "RegenStaker");
 
+        // Authorize admin as reward notifier (required to call notifyRewardAmount)
+        vm.prank(admin);
+        regenStaker.setRewardNotifier(admin, true);
+
         return regenStaker;
     }
 
@@ -79,14 +83,14 @@ contract RegenStakerSetup is Test {
      * @param rewardAmount Amount of ENDAO tokens to add as rewards
      */
     function fundRewards(uint256 rewardAmount) public {
-        // Mint tokens to this contract
+        // Mint tokens directly to RegenStaker contract (required by notifyRewardAmount)
+        // notifyRewardAmount checks the balance of the RegenStaker contract itself
         vm.prank(admin);
-        endaoToken.mint(address(this), rewardAmount);
+        endaoToken.mint(address(regenStaker), rewardAmount);
 
-        // Approve RegenStaker to spend rewards
-        endaoToken.approve(address(regenStaker), rewardAmount);
-
-        // Notify RegenStaker of rewards
+        // Notify RegenStaker of rewards (admin must be authorized as reward notifier)
+        // This validates that RegenStaker has sufficient balance for the reward amount
+        vm.prank(admin);
         regenStaker.notifyRewardAmount(rewardAmount);
     }
 
